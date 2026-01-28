@@ -2,6 +2,22 @@ require('dotenv').config();
 const { Telegraf, Markup } = require('telegraf');
 const OpenAI = require('openai');
 
+const LEVELS = [
+  { level: 1, min: 0 },
+  { level: 2, min: 50 },
+  { level: 3, min: 120 },
+  { level: 4, min: 250 },
+  { level: 5, min: 500 }
+];
+
+function calculateLevel(points) {
+  let current = 1;
+  for (const l of LEVELS) {
+    if (points >= l.min) current = l.level;
+  }
+  return current;
+}
+
 const mongoose = require('mongoose');
 
 mongoose.connect(process.env.MONGODB_URI)
@@ -10,11 +26,19 @@ mongoose.connect(process.env.MONGODB_URI)
 
 const UserSchema = new mongoose.Schema({
   telegramId: { type: String, unique: true },
+
+  // progression
+  points: { type: Number, default: 0 },
+  level: { type: Number, default: 1 },
+  streak: { type: Number, default: 0 },
+  lastAction: String, // done | skip
+
+  // goal data
   goal: String,
   deadline: String,
   time: String,
   style: String,
-  lastAction: String,
+
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -129,15 +153,57 @@ async function sendDailyTask(ctx) {
   );
 }
 
-bot.action('done', (ctx) => {
-  ctx.answerCbQuery('Nice work 💪');
-  ctx.reply("Great job. Tomorrow I’ll raise the bar slightly.");
+bot.action('done', async (ctx) => {
+  const user = await User.findOne({ telegramId: ctx.from.id });
+
+  user.streak += 1;
+
+  const reward = user.streak >= 3 ? 15 : 10;
+  user.points += reward;
+  user.lastAction = 'done';
+
+  const oldLevel = user.level;
+  user.level = calculateLevel(user.points);
+
+  await user.save();
+
+  ctx.answerCbQuery();
+
+  let message = `✅ Task completed!\n+${reward} points\n🔥 Streak: ${user.streak} days`;
+
+  if (user.level > oldLevel) {
+    message += `\n\n🏆 LEVEL UP!\nYou are now Level ${user.level}`;
+  }
+
+  ctx.reply(message);
 });
 
-bot.action('skip', (ctx) => {
-  ctx.answerCbQuery('No worries');
-  ctx.reply("Got it. Tomorrow we’ll go smaller, not easier.");
+
+bot.action('skip', async (ctx) => {
+  const user = await User.findOne({ telegramId: ctx.from.id });
+
+  const penalty = user.lastAction === 'skip' ? 20 : 10;
+
+  user.points = Math.max(0, user.points - penalty);
+  user.streak = 0;
+  user.lastAction = 'skip';
+
+  const oldLevel = user.level;
+  user.level = calculateLevel(user.points);
+
+  await user.save();
+
+  ctx.answerCbQuery();
+
+  let message = `⏭ Task skipped.\n−${penalty} points\nStreak reset.`;
+
+  if (user.level < oldLevel) {
+    message += `\n\n⬇️ Level dropped to ${user.level}`;
+  }
+
+  ctx.reply(message);
 });
+
 
 bot.launch();
 console.log('Coach Leo is running 🚀');
