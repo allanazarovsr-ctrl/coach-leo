@@ -94,10 +94,23 @@ bot.on('text', async (ctx) => {
         Markup.keyboard([['Soft', 'Balanced', 'Tough']]).oneTime().resize()
       );
 
-    case 4:
-      user.style = text;
-      user.step = 999;
-      return sendDailyTask(ctx);
+   case 4:
+  user.style = text;
+  user.step = 999;
+
+  await User.findOneAndUpdate(
+    { telegramId: ctx.from.id },
+    {
+      telegramId: ctx.from.id,
+      goal: user.goal,
+      deadline: user.deadline,
+      time: user.time,
+      style: user.style
+    },
+    { upsert: true, new: true }
+  );
+
+  return sendDailyTask(ctx);
   }
 });
 
@@ -156,6 +169,11 @@ async function sendDailyTask(ctx) {
 bot.action('done', async (ctx) => {
   const user = await User.findOne({ telegramId: ctx.from.id });
 
+  if (!user) {
+  await ctx.answerCbQuery();
+  return ctx.reply("⚠️ Please restart with /start");
+}
+
   user.streak += 1;
 
   const reward = user.streak >= 3 ? 15 : 10;
@@ -182,6 +200,11 @@ bot.action('done', async (ctx) => {
 bot.action('skip', async (ctx) => {
   const user = await User.findOne({ telegramId: ctx.from.id });
 
+  if (!user) {
+  await ctx.answerCbQuery();
+  return ctx.reply("⚠️ Please restart with /start");
+}
+
   const penalty = user.lastAction === 'skip' ? 20 : 10;
 
   user.points = Math.max(0, user.points - penalty);
@@ -205,9 +228,7 @@ bot.action('skip', async (ctx) => {
 });
 
 
-bot.launch();
-console.log('Coach Leo is running 🚀');
-
+// EXPRESS FIRST
 const express = require('express');
 const app = express();
 
@@ -219,4 +240,8 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Web server running on port ${PORT}`);
 });
+
+// THEN BOT
+bot.launch();
+console.log('Coach Leo is running 🚀');
 
