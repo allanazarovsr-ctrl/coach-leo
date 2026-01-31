@@ -43,27 +43,7 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error(err));
 
-const UserSchema = new mongoose.Schema({
-  telegramId: { type: String, unique: true },
-
-  // progression
-  points: { type: Number, default: 0 },
-  level: { type: Number, default: 1 },
-  streak: { type: Number, default: 0 },
-  lastAction: String, // done | skip
-
-  // goal data
-  goal: String,
-  deadline: String,
-  time: String,
-  style: String,
-
-  createdAt: { type: Date, default: Date.now }
-});
-
-const User = mongoose.model('User', UserSchema);
-
-
+const User = require('./models/User');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
