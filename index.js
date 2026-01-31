@@ -18,24 +18,6 @@ function calculateLevel(points) {
   return current;
 }
 
-const UserSchema = new mongoose.Schema({
-  telegramId: { type: String, unique: true },
-
-  goal: String,
-  deadline: String,
-  time: String,
-  style: String,
-
-  points: { type: Number, default: 0 },
-  level: { type: Number, default: 1 },
-  streak: { type: Number, default: 0 },
-
-  lastTaskDate: Date,
-  taskCompletedToday: { type: Boolean, default: false },
-
-  timezone: { type: String, default: 'Asia/Tashkent' }, // later
-});
-
 
 const mongoose = require('mongoose');
 
@@ -173,11 +155,22 @@ bot.action('done', async (ctx) => {
   return ctx.reply("⚠️ Please restart with /start");
 }
 
+  // prevent double completion
+  if (user.taskCompletedToday) {
+    await ctx.answerCbQuery();
+    return ctx.reply("⚠️ You already completed today’s task.");
+  }
+
+
   user.streak += 1;
 
   const reward = user.streak >= 3 ? 15 : 10;
   user.points += reward;
   user.lastAction = 'done';
+
+  user.taskCompletedToday = true;
+  user.lastTaskDate = new Date();
+
 
   const oldLevel = user.level;
   user.level = calculateLevel(user.points);
