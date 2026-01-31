@@ -77,6 +77,24 @@ bot.on('text', async (ctx) => {
 
    case 4:
   user.style = text;
+  user.step = 5;
+
+  return ctx.reply(
+    "⏰ When should I send your daily task?",
+    Markup.keyboard([['08:00', '10:00', '12:00']]).oneTime().resize()
+  );
+
+case 5:
+  user.taskTime = text;
+  user.step = 6;
+
+  return ctx.reply(
+    "🌙 When should I check in with you?",
+    Markup.keyboard([['20:00', '22:00', '23:00']]).oneTime().resize()
+  );
+
+case 6:
+  user.checkInTime = text;
   user.step = 999;
 
   await User.findOneAndUpdate(
@@ -86,14 +104,19 @@ bot.on('text', async (ctx) => {
       goal: user.goal,
       deadline: user.deadline,
       time: user.time,
-      style: user.style
+      style: user.style,
+      taskTime: user.taskTime,
+      checkInTime: user.checkInTime
     },
     { upsert: true, new: true }
   );
 
   return sendDailyTask(ctx);
+
   }
 });
+
+
 
 async function generateDailyTask(user) {
   const prompt = `
