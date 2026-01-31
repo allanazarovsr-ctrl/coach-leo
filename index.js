@@ -18,6 +18,25 @@ function calculateLevel(points) {
   return current;
 }
 
+const UserSchema = new mongoose.Schema({
+  telegramId: { type: String, unique: true },
+
+  goal: String,
+  deadline: String,
+  time: String,
+  style: String,
+
+  points: { type: Number, default: 0 },
+  level: { type: Number, default: 1 },
+  streak: { type: Number, default: 0 },
+
+  lastTaskDate: Date,
+  taskCompletedToday: { type: Boolean, default: false },
+
+  timezone: { type: String, default: 'Asia/Tashkent' }, // later
+});
+
+
 const mongoose = require('mongoose');
 
 mongoose.connect(process.env.MONGODB_URI)
