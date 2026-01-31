@@ -9,15 +9,7 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 mongoose.connect(process.env.MONGODB_URI);
 
 // User model (must MATCH index.js)
-const User = mongoose.model('User', new mongoose.Schema({
-  telegramId: String,
-  goal: String,
-  deadline: String,
-  time: String,
-  style: String,
-  taskCompletedToday: Boolean,
-  lastTaskDate: Date
-}));
+const User = require('./models/User');
 
 const openai = new OpenAI({
   apiKey: process.env.DEEPSEEK_API_KEY,
